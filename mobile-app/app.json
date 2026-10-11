@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "CityPilot",
+    "slug": "citypilot-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "citypilot",
+    "icon": "./assets/icons/citypilot_app_icon_quadhd.png",
+    "splash": {
+      "backgroundColor": "#0A84FF",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.citypilot.mobility"
+    },
+    "android": {
+      "package": "com.citypilot.mobility",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icons/citypilot_app_icon_quadhd.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "permissions": [
+        "INTERNET",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-status-bar",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "CityPilot uses your location to discover nearby metro stations, live bus transit, and route navigation across Hyderabad."
+        }
+      ]
+    ]
+  }
+}

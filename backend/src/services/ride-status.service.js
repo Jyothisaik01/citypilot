@@ -1,0 +1,68 @@
+/**
+ * CityPilot Ride Status State Machine (Mode 2 Architecture)
+ * Strict enum-driven lifecycle management
+ */
+
+const RIDE_STATUSES = {
+  REQUESTED: 'REQUESTED',
+  SEARCHING_DRIVER: 'SEARCHING_DRIVER',
+  DRIVER_ASSIGNED: 'DRIVER_ASSIGNED',
+  DRIVER_EN_ROUTE: 'DRIVER_EN_ROUTE',
+  DRIVER_ARRIVED: 'DRIVER_ARRIVED',
+  RIDE_STARTED: 'RIDE_STARTED',
+  RIDE_COMPLETED: 'RIDE_COMPLETED',
+  CANCELLED_BY_USER: 'CANCELLED_BY_USER',
+  CANCELLED_BY_DRIVER: 'CANCELLED_BY_DRIVER',
+  CANCELLED_BY_SYSTEM: 'CANCELLED_BY_SYSTEM',
+};
+
+const VALID_TRANSITIONS = {
+  [RIDE_STATUSES.REQUESTED]: [RIDE_STATUSES.SEARCHING_DRIVER, RIDE_STATUSES.CANCELLED_BY_USER],
+  [RIDE_STATUSES.SEARCHING_DRIVER]: [
+    RIDE_STATUSES.DRIVER_ASSIGNED,
+    RIDE_STATUSES.CANCELLED_BY_USER,
+    RIDE_STATUSES.CANCELLED_BY_SYSTEM,
+  ],
+  [RIDE_STATUSES.DRIVER_ASSIGNED]: [
+    RIDE_STATUSES.DRIVER_EN_ROUTE,
+    RIDE_STATUSES.CANCELLED_BY_USER,
+    RIDE_STATUSES.CANCELLED_BY_DRIVER,
+  ],
+  [RIDE_STATUSES.DRIVER_EN_ROUTE]: [
+    RIDE_STATUSES.DRIVER_ARRIVED,
+    RIDE_STATUSES.CANCELLED_BY_USER,
+    RIDE_STATUSES.CANCELLED_BY_DRIVER,
+  ],
+  [RIDE_STATUSES.DRIVER_ARRIVED]: [
+    RIDE_STATUSES.RIDE_STARTED,
+    RIDE_STATUSES.CANCELLED_BY_USER,
+    RIDE_STATUSES.CANCELLED_BY_DRIVER,
+  ],
+  [RIDE_STATUSES.RIDE_STARTED]: [RIDE_STATUSES.RIDE_COMPLETED],
+  [RIDE_STATUSES.RIDE_COMPLETED]: [],
+  [RIDE_STATUSES.CANCELLED_BY_USER]: [],
+  [RIDE_STATUSES.CANCELLED_BY_DRIVER]: [],
+  [RIDE_STATUSES.CANCELLED_BY_SYSTEM]: [],
+};
+
+class RideStatusService {
+  canTransition(currentStatus, nextStatus) {
+    const allowed = VALID_TRANSITIONS[currentStatus] || [];
+    return allowed.includes(nextStatus);
+  }
+
+  transition(ride, nextStatus) {
+    if (!this.canTransition(ride.status, nextStatus)) {
+      throw new Error(`Invalid ride status transition: ${ride.status} -> ${nextStatus}`);
+    }
+    ride.status = nextStatus;
+    ride.updatedAt = new Date().toISOString();
+    return ride;
+  }
+}
+
+module.exports = {
+  RIDE_STATUSES,
+  rideStatusService: new RideStatusService(),
+};
+
