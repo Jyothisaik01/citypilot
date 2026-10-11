@@ -8,10 +8,6 @@
     "userInterfaceStyle": "light",
     "scheme": "citypilot",
     "icon": "./assets/icons/citypilot_app_icon_quadhd.png",
-    "splash": {
-      "backgroundColor": "#0A84FF",
-      "resizeMode": "contain"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.citypilot.mobility"
