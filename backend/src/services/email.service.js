@@ -7,7 +7,7 @@ try {
 const BREVO_API_KEY = process.env.BREVO_API_KEY || '';
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const SENDER_EMAIL = process.env.SENDER_EMAIL || 'noreply.2k2x@gmail.com';
-const SENDER_NAME = 'CityPilot';
+const SENDER_NAME = process.env.SENDER_NAME || 'CityPilot';
 const EMAIL_USER = process.env.EMAIL_USER || '';
 const EMAIL_PASS = process.env.EMAIL_PASS || '';
 

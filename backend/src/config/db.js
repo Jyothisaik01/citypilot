@@ -1,9 +1,7 @@
 const mongoose = require('mongoose');
 
+// MongoDB connection URI loaded strictly from environment variable
 const LOCAL_MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/citypilot';
-
-// Production URI for future release (user provided):
-// const PROD_MONGO_URI = 'mongodb+srv://karumajjijyothisai24042003_db_user:Jyothisai%402003@cluster0.g9zvpiq.mongodb.net/citypilot?retryWrites=true&w=majority';
 
 const connectDB = async () => {
   try {

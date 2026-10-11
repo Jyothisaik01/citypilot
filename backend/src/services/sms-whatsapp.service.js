@@ -8,6 +8,7 @@
  */
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY || '';
+const FAST2SMS_API_KEY = process.env.FAST2SMS_API_KEY || '';
 
 /**
  * Format phone number for international delivery (defaults to India +91)
@@ -125,7 +126,7 @@ async function sendWhatsAppMessage({ phone, otp, apiKey }) {
  * Send SMS via Fast2SMS Indian OTP Route
  */
 async function sendFast2Sms({ phone, otp }) {
-  const apiKey = process.env.FAST2SMS_API_KEY;
+  const apiKey = process.env.FAST2SMS_API_KEY || FAST2SMS_API_KEY;
   if (!apiKey) return { success: false, error: 'No FAST2SMS_API_KEY configured' };
 
   const rawDigits = String(phone).replace(/\D/g, '');

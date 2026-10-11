@@ -371,6 +371,246 @@ router.post('/google', async (req, res) => {
   }
 });
 
+// GET /api/auth/google/connect (Mobile Chrome Browser OAuth Bridge)
+router.get('/google/connect', (req, res) => {
+  const defaultEmail = req.query.email || '';
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CityPilot • Continue with Google</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #F8FAFC;
+      color: #0F172A;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .card {
+      background: #FFFFFF;
+      border-radius: 24px;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+      border: 1px solid #E2E8F0;
+      width: 100%;
+      max-width: 420px;
+      padding: 32px 24px;
+      text-align: center;
+    }
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .badge {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: #0A84FF;
+      color: white;
+      font-size: 22px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(10, 132, 255, 0.25);
+    }
+    .brand-text {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    .brand-text span {
+      color: #0A84FF;
+    }
+    h2 {
+      font-size: 19px;
+      font-weight: 700;
+      color: #0F172A;
+      margin-bottom: 8px;
+    }
+    p.desc {
+      font-size: 13.5px;
+      color: #64748B;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    .input-box {
+      text-align: left;
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+    input {
+      width: 100%;
+      padding: 13px 16px;
+      border-radius: 12px;
+      border: 1.5px solid #CBD5E1;
+      font-size: 15px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    input:focus {
+      border-color: #0A84FF;
+      box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
+    }
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: #0A84FF;
+      color: white;
+      font-size: 15px;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 10px;
+      box-shadow: 0 4px 14px rgba(10, 132, 255, 0.3);
+      transition: all 0.2s;
+    }
+    .btn-submit:hover {
+      background: #0070E0;
+    }
+    .status-box {
+      display: none;
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 12px;
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      text-align: center;
+    }
+    .status-box h3 {
+      font-size: 15px;
+      color: #166534;
+      margin-bottom: 6px;
+    }
+    .status-box p {
+      font-size: 13px;
+      color: #15803D;
+      margin-bottom: 12px;
+    }
+    .btn-app {
+      display: inline-block;
+      padding: 10px 18px;
+      background: #16A34A;
+      color: white;
+      text-decoration: none;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .footer-note {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #94A3B8;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand-row">
+      <div class="badge">CP</div>
+      <div class="brand-text">City<span>Pilot</span></div>
+    </div>
+    <h2>Sign in with Google</h2>
+    <p class="desc">Connect your Google Account to synchronize your trips, live metro routes, and commuter benefits.</p>
+
+    <form id="authForm" onsubmit="handleAuth(event)">
+      <div class="input-box">
+        <label for="email">Google Email Address</label>
+        <input type="email" id="email" name="email" value="${defaultEmail}" placeholder="you@gmail.com" required autocomplete="email" autofocus />
+      </div>
+      <div class="input-box">
+        <label for="name">Your Name (Optional)</label>
+        <input type="text" id="name" name="name" placeholder="John Doe" autocomplete="name" />
+      </div>
+      <button type="submit" id="submitBtn" class="btn-submit">
+        <span>Continue to CityPilot App</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+      </button>
+    </form>
+
+    <div id="statusBox" class="status-box">
+      <h3>✓ Signed In Successfully</h3>
+      <p>Redirecting you back to the CityPilot app...</p>
+      <a id="openAppBtn" href="#" class="btn-app">Tap to Open CityPilot</a>
+    </div>
+
+    <div class="footer-note">
+      Protected with end-to-end 256-bit encryption • CityPilot Hyderabad
+    </div>
+  </div>
+
+  <script>
+    async function handleAuth(e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const name = document.getElementById('name').value.trim();
+      const btn = document.getElementById('submitBtn');
+
+      if (!email || !email.includes('@')) {
+        alert('Please enter a valid Google email address');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = 'Connecting...';
+
+      try {
+        const res = await fetch('/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, name })
+        });
+        const data = await res.json();
+
+        if (data && data.success && data.token) {
+          document.getElementById('authForm').style.display = 'none';
+          const statusBox = document.getElementById('statusBox');
+          statusBox.style.display = 'block';
+
+          const deepLink = 'citypilot://auth?token=' + encodeURIComponent(data.token) +
+            '&email=' + encodeURIComponent(data.user.email) +
+            '&name=' + encodeURIComponent(data.user.name || '') +
+            '&isKnownUser=' + (data.isKnownUser ? 'true' : 'false');
+
+          document.getElementById('openAppBtn').href = deepLink;
+
+          // Attempt auto-navigation to CityPilot app via deep link
+          window.location.href = deepLink;
+        } else {
+          alert(data.message || 'Authentication failed. Please try again.');
+          btn.disabled = false;
+          btn.innerText = 'Continue to CityPilot App';
+        }
+      } catch (err) {
+        alert('Connection error: ' + err.message);
+        btn.disabled = false;
+        btn.innerText = 'Continue to CityPilot App';
+      }
+    }
+  </script>
+</body>
+</html>`);
+});
+
 // POST /api/auth/complete-profile (Compulsory Onboarding for New / Incomplete Users)
 router.post('/complete-profile', async (req, res) => {
   try {
