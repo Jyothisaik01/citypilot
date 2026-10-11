@@ -13,6 +13,7 @@ import {
 import { ArrowRight, Sparkles, Zap, ShieldCheck } from 'lucide-react-native';
 import Images from '../assets/images';
 import colors from '../theme/colors';
+import CityPilotLogo from '../components/CityPilotLogo';
 
 const { width } = Dimensions.get('window');
 
@@ -84,7 +85,7 @@ export default function OnboardingScreen({ navigation }) {
 
       {/* Top Header & Skip */}
       <View style={styles.topHeader}>
-        <Image source={Images.logo} style={styles.logoTop} resizeMode="contain" />
+        <CityPilotLogo size={32} />
         <TouchableOpacity onPress={handleSkip} style={styles.skipBtn}>
           <Text style={styles.skipText}>Skip</Text>
         </TouchableOpacity>

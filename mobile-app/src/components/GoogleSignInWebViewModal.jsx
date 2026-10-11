@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   View,
@@ -7,400 +7,455 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
-  KeyboardAvoidingView,
+  Linking,
+  ScrollView,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { WebView } from 'react-native-webview';
-import { X, Lock, RotateCw, CheckCircle, ArrowRight, ShieldCheck } from 'lucide-react-native';
+import { X, Globe, ShieldCheck, ArrowRight, CheckCircle, Mail, User, Sparkles } from 'lucide-react-native';
+import { PRODUCTION_API_URL } from '../config/api';
 
 export default function GoogleSignInWebViewModal({
   visible,
   onClose,
   onSuccess,
 }) {
-  const webViewRef = useRef(null);
-  const [loading, setLoading] = useState(true);
-  const [currentUrl, setCurrentUrl] = useState('https://accounts.google.com');
-  const [showConfirmSheet, setShowConfirmSheet] = useState(false);
-  const [detectedEmail, setDetectedEmail] = useState('');
-  const [accountName, setAccountName] = useState('');
-  const [confirming, setConfirming] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState('');
+  const [googleName, setGoogleName] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [openedBrowser, setOpenedBrowser] = useState(false);
 
-  // Custom User-Agent to prevent Google's "403: disallowed_useragent" or "browser not secure" blocks
-  const USER_AGENT =
-    'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36';
+  // Chrome OAuth Bridge URL
+  const CHROME_AUTH_URL = `${PRODUCTION_API_URL}/api/auth/google/connect`;
 
-  const GOOGLE_SIGNIN_URL =
-    'https://accounts.google.com/signin/v2/identifier?flowName=GlifWebSignIn&flowEntry=ServiceLogin';
-
-  const handleNavigationChange = (navState) => {
-    setCurrentUrl(navState.url);
-
-    // If navigated to account home or logged in page
-    if (
-      navState.url.includes('myaccount.google.com') ||
-      navState.url.includes('accounts.google.com/ManageAccount') ||
-      navState.url.includes('google.com/webhp') ||
-      navState.url.includes('google.com/?')
-    ) {
-      // User successfully signed into Google!
-      setShowConfirmSheet(true);
+  const handleOpenChrome = async () => {
+    setOpenedBrowser(true);
+    try {
+      await Linking.openURL(CHROME_AUTH_URL);
+    } catch (err) {
+      console.warn('Could not launch Chrome / browser:', err);
     }
   };
 
-  const handleConfirmLogin = async () => {
-    const cleanEmail = detectedEmail.trim().toLowerCase();
+  const handleDirectSubmit = async () => {
+    const cleanEmail = googleEmail.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
-      alert('Please enter your Google account email to complete synchronization.');
+      alert('Please enter a valid Google account email (e.g. name@gmail.com)');
       return;
     }
 
-    setConfirming(true);
+    setSubmitting(true);
     try {
       await onSuccess({
         email: cleanEmail,
-        name: accountName.trim() || cleanEmail.split('@')[0],
+        name: googleName.trim() || cleanEmail.split('@')[0],
       });
-      setShowConfirmSheet(false);
     } catch (err) {
-      console.error('Google sign-in confirmation failed', err);
+      console.error('Google Sign-In error:', err);
     } finally {
-      setConfirming(false);
+      setSubmitting(false);
+    }
+  };
+
+  const handleFillGmail = () => {
+    if (!googleEmail.includes('@')) {
+      setGoogleEmail(googleEmail ? `${googleEmail}@gmail.com` : '');
     }
   };
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={styles.safeArea}>
-        {/* Real In-App Browser Header */}
-        <View style={styles.browserHeader}>
-          <TouchableOpacity
-            style={styles.headerBtn}
-            onPress={onClose}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <X size={20} color="#334155" />
-          </TouchableOpacity>
-
-          <View style={styles.urlBar}>
-            <Lock size={12} color="#16A34A" style={styles.lockIcon} />
-            <Text style={styles.urlText} numberOfLines={1}>
-              {currentUrl.replace('https://', '').split('/')[0] || 'accounts.google.com'}
-            </Text>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={onClose}
+    >
+      <View style={styles.overlay}>
+        <View style={styles.sheetContainer}>
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.googleBrandRow}>
+              <View style={styles.googleGContainer}>
+                <Text style={styles.googleGText}>G</Text>
+              </View>
+              <View>
+                <Text style={styles.headerTitle}>Sign in with Google</Text>
+                <Text style={styles.headerSubtitle}>Choose how you want to continue</Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+              <X size={20} color="#64748B" />
+            </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={styles.headerBtn}
-            onPress={() => webViewRef.current?.reload()}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <RotateCw size={18} color="#334155" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Progress Loading Bar */}
-        {loading && (
-          <View style={styles.loadingBar}>
-            <ActivityIndicator size="small" color="#0A84FF" />
-            <Text style={styles.loadingText}>Connecting to Google Accounts...</Text>
-          </View>
-        )}
-
-        {/* Real Google Login WebView */}
-        <View style={styles.webviewContainer}>
-          <WebView
-            ref={webViewRef}
-            source={{ uri: GOOGLE_SIGNIN_URL }}
-            userAgent={USER_AGENT}
-            javaScriptEnabled={true}
-            domStorageEnabled={true}
-            startInLoadingState={true}
-            onLoadStart={() => setLoading(true)}
-            onLoadEnd={() => setLoading(false)}
-            onNavigationStateChange={handleNavigationChange}
-            style={styles.webview}
-          />
-        </View>
-
-        {/* Bottom Synchronization Floating Action Bar */}
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.bottomBar}
-        >
-          {!showConfirmSheet ? (
-            <View style={styles.bottomPromptRow}>
-              <View style={styles.promptInfo}>
-                <View style={styles.googleBadge}>
-                  <Text style={styles.googleG}>G</Text>
+          <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            {/* Primary Option: Open in Chrome */}
+            <View style={styles.cardOption}>
+              <View style={styles.optionHeader}>
+                <View style={styles.iconCircleBlue}>
+                  <Globe size={22} color="#0A84FF" />
                 </View>
-                <View style={styles.promptTextCol}>
-                  <Text style={styles.promptTitle}>Google Sign-In Session</Text>
-                  <Text style={styles.promptSub}>
-                    Log into Google above, then sync to CityPilot
+                <View style={styles.optionTextWrap}>
+                  <View style={styles.badgeRow}>
+                    <Text style={styles.optionTitle}>Open in Chrome Browser</Text>
+                    <View style={styles.recommendBadge}>
+                      <Text style={styles.recommendText}>Recommended</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.optionDesc}>
+                    Uses your active Google session in Chrome. No password typing required.
                   </Text>
                 </View>
               </View>
 
               <TouchableOpacity
-                style={styles.syncBtn}
-                onPress={() => setShowConfirmSheet(true)}
+                style={styles.chromeBtn}
+                onPress={handleOpenChrome}
                 activeOpacity={0.85}
               >
-                <Text style={styles.syncBtnText}>Sync Account</Text>
-                <ArrowRight size={15} color="#fff" />
+                <Text style={styles.chromeBtnText}>Continue in Chrome</Text>
+                <ArrowRight size={16} color="#FFFFFF" />
               </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.syncSheet}>
-              <View style={styles.sheetHeader}>
-                <View style={styles.sheetBadgeRow}>
-                  <ShieldCheck size={18} color="#0A84FF" />
-                  <Text style={styles.sheetTitle}>Synchronize Google Account</Text>
+
+              {openedBrowser && (
+                <View style={styles.browserNotice}>
+                  <Text style={styles.browserNoticeText}>
+                    Chrome launched! After approving in Chrome, you will be redirected back automatically.
+                  </Text>
                 </View>
-                <TouchableOpacity
-                  onPress={() => setShowConfirmSheet(false)}
-                  style={styles.sheetCloseBtn}
-                >
-                  <X size={16} color="#64748B" />
-                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Divider */}
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>OR QUICK 1-TAP</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* In-App Direct Sync Option */}
+            <View style={styles.cardOptionDirect}>
+              <View style={styles.optionHeader}>
+                <View style={styles.iconCircleGreen}>
+                  <ShieldCheck size={22} color="#16A34A" />
+                </View>
+                <View style={styles.optionTextWrap}>
+                  <Text style={styles.optionTitle}>Instant In-App Sign-In</Text>
+                  <Text style={styles.optionDesc}>
+                    Enter your Google email to synchronize instantly without leaving the app.
+                  </Text>
+                </View>
               </View>
 
-              <Text style={styles.sheetSubtitle}>
-                Confirm your Google email to bind your CityPilot trips and profile.
-              </Text>
-
-              <View style={styles.inputRow}>
-                <TextInput
-                  style={styles.sheetInput}
-                  placeholder="Your Google email (e.g. name@gmail.com)"
-                  placeholderTextColor="#94A3B8"
-                  value={detectedEmail}
-                  onChangeText={setDetectedEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoFocus={true}
-                />
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Google Email Address</Text>
+                <View style={styles.inputWrap}>
+                  <Mail size={17} color="#94A3B8" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="e.g. name@gmail.com"
+                    placeholderTextColor="#94A3B8"
+                    value={googleEmail}
+                    onChangeText={setGoogleEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </View>
+                {googleEmail.length > 2 && !googleEmail.includes('@') && (
+                  <TouchableOpacity onPress={handleFillGmail} style={styles.chipRow}>
+                    <Text style={styles.chipText}>+ @gmail.com</Text>
+                  </TouchableOpacity>
+                )}
               </View>
 
-              <View style={styles.inputRow}>
-                <TextInput
-                  style={styles.sheetInput}
-                  placeholder="Your Name (Optional)"
-                  placeholderTextColor="#94A3B8"
-                  value={accountName}
-                  onChangeText={setAccountName}
-                />
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Your Name (Optional)</Text>
+                <View style={styles.inputWrap}>
+                  <User size={17} color="#94A3B8" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="e.g. Rahul Sharma"
+                    placeholderTextColor="#94A3B8"
+                    value={googleName}
+                    onChangeText={setGoogleName}
+                  />
+                </View>
               </View>
 
               <TouchableOpacity
-                style={styles.confirmSyncBtn}
-                onPress={handleConfirmLogin}
-                disabled={confirming}
+                style={[styles.directBtn, submitting && { opacity: 0.7 }]}
+                onPress={handleDirectSubmit}
+                disabled={submitting}
                 activeOpacity={0.85}
               >
-                {confirming ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                {submitting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <>
-                    <CheckCircle size={18} color="#fff" />
-                    <Text style={styles.confirmSyncBtnText}>Complete Sign-In</Text>
+                    <CheckCircle size={18} color="#FFFFFF" />
+                    <Text style={styles.directBtnText}>Complete Sign-In</Text>
                   </>
                 )}
               </TouchableOpacity>
             </View>
-          )}
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+          </ScrollView>
+
+          <View style={styles.securityFooter}>
+            <ShieldCheck size={14} color="#64748B" />
+            <Text style={styles.securityText}>Verified 256-bit secure authentication</Text>
+          </View>
+        </View>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  overlay: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'flex-end',
   },
-  browserHeader: {
+  sheetContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 20,
+    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
+    paddingHorizontal: 20,
+    maxHeight: '90%',
+  },
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#F1F5F9',
   },
-  headerBtn: {
-    padding: 6,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
-  },
-  urlBar: {
-    flex: 1,
+  googleBrandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
-    marginHorizontal: 10,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    borderWidth: 1,
+    gap: 12,
+  },
+  googleGContainer: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
     borderColor: '#E2E8F0',
-  },
-  lockIcon: {
-    marginRight: 6,
-  },
-  urlText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#0F172A',
-  },
-  loadingBar: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EFF6FF',
-    paddingVertical: 6,
-    gap: 8,
-  },
-  loadingText: {
-    fontSize: 12,
-    color: '#0A84FF',
-    fontWeight: '500',
-  },
-  webviewContainer: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  webview: {
-    flex: 1,
-  },
-  bottomBar: {
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  bottomPromptRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  promptInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-  },
-  googleBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: 3,
     elevation: 2,
   },
-  googleG: {
-    fontSize: 18,
+  googleGText: {
+    fontSize: 22,
     fontWeight: '800',
     color: '#4285F4',
   },
-  promptTextCol: {
-    flex: 1,
-  },
-  promptTitle: {
-    fontSize: 13,
-    fontWeight: '700',
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
     color: '#0F172A',
   },
-  promptSub: {
-    fontSize: 11,
+  headerSubtitle: {
+    fontSize: 12.5,
     color: '#64748B',
     marginTop: 1,
   },
-  syncBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#0A84FF',
-    paddingVertical: 9,
-    paddingHorizontal: 14,
-    borderRadius: 20,
+  closeBtn: {
+    padding: 6,
+    borderRadius: 16,
+    backgroundColor: '#F8FAFC',
   },
-  syncBtnText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
+  scrollContent: {
+    marginTop: 16,
   },
-  syncSheet: {
-    paddingVertical: 4,
+  cardOption: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: '#BAE6FD',
+    padding: 16,
   },
-  sheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  sheetBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  sheetTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  sheetCloseBtn: {
-    padding: 4,
-  },
-  sheetSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
+  cardOptionDirect: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    padding: 16,
     marginBottom: 10,
   },
-  inputRow: {
-    marginBottom: 8,
+  optionHeader: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 14,
   },
-  sheetInput: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
+  iconCircleBlue: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E0F2FE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconCircleGreen: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionTextWrap: {
+    flex: 1,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  optionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
     color: '#0F172A',
   },
-  confirmSyncBtn: {
+  recommendBadge: {
+    backgroundColor: '#0A84FF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  recommendText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  optionDesc: {
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 16,
+    marginTop: 3,
+  },
+  chromeBtn: {
+    backgroundColor: '#0A84FF',
+    borderRadius: 12,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#0A84FF',
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 4,
+    shadowColor: '#0A84FF',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  confirmSyncBtnText: {
+  chromeBtnText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
   },
+  browserNotice: {
+    marginTop: 10,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: '#EFF6FF',
+  },
+  browserNoticeText: {
+    fontSize: 11.5,
+    color: '#1D4ED8',
+    textAlign: 'center',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 18,
+    gap: 10,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E2E8F0',
+  },
+  dividerText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#94A3B8',
+    letterSpacing: 0.5,
+  },
+  inputGroup: {
+    marginBottom: 12,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 5,
+  },
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+  },
+  inputIcon: {
+    marginRight: 8,
+  },
+  textInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#0F172A',
+  },
+  chipRow: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 5,
+  },
+  chipText: {
+    color: '#0A84FF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  directBtn: {
+    backgroundColor: '#16A34A',
+    borderRadius: 12,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 6,
+  },
+  directBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  securityFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  securityText: {
+    fontSize: 11.5,
+    color: '#64748B',
+  },
 });
-

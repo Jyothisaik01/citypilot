@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -45,7 +45,7 @@ const COUNTRIES = [
 ];
 
 export default function LoginScreen({ navigation }) {
-  const { sendOtp, verifyOtp, sendEmailOtp, verifyEmailOtp, loginWithGoogle } = useAuth();
+  const { sendOtp, verifyOtp, sendEmailOtp, verifyEmailOtp, loginWithGoogle, loginWithToken } = useAuth();
 
   const [authMethod, setAuthMethod] = useState('phone'); // 'phone' | 'email'
 
@@ -75,6 +75,58 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [infoMsg, setInfoMsg] = useState('');
+
+  // Handle OAuth Deep Link callback from Chrome (citypilot://auth?token=...&email=...)
+  useEffect(() => {
+    const handleAuthUrl = async (url) => {
+      if (!url || !url.startsWith('citypilot://auth')) return;
+      try {
+        const queryString = url.includes('?') ? url.split('?')[1] : '';
+        if (!queryString) return;
+        const pairs = queryString.split('&');
+        const params = {};
+        pairs.forEach((p) => {
+          const [k, v] = p.split('=');
+          if (k) params[k] = decodeURIComponent(v || '');
+        });
+
+        if (params.token && params.email) {
+          setLoading(true);
+          setGoogleModalVisible(false);
+          const isKnown = params.isKnownUser === 'true';
+          const userObj = {
+            email: params.email,
+            name: params.name || params.email.split('@')[0],
+          };
+
+          await loginWithToken(params.token, userObj, isKnown);
+          setLoading(false);
+
+          if (isKnown) {
+            navigation.replace('LocationPermission');
+          } else {
+            navigation.replace('CompleteProfile', {
+              email: params.email,
+              name: params.name || '',
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Error processing auth deep link:', err);
+        setLoading(false);
+      }
+    };
+
+    Linking.getInitialURL().then(handleAuthUrl);
+
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      handleAuthUrl(url);
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [navigation, loginWithToken]);
 
   // Reset errors and infos on method switch
   const handleSwitchMethod = (method) => {
@@ -170,6 +222,8 @@ export default function LoginScreen({ navigation }) {
       if (res && res.success) {
         setEmailOtpStep(true);
         setEmailOtp('');
+        setDevOtp(res.devOtp || '');
+        setShowNotificationBanner(true);
         setInfoMsg(`Verification code sent to ${cleanEmail}. Please check your inbox.`);
       } else {
         setErrorMsg(res?.message || 'Failed to send verification code. Please check your email.');
@@ -248,7 +302,11 @@ export default function LoginScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* Brand Header */}
         <View style={styles.header}>
-          <Image source={Images.logo} style={styles.brandLogo} resizeMode="contain" />
+          <Image
+            source={require('../../assets/branding/citypilot_pin_icon.png')}
+            style={styles.brandPin}
+            resizeMode="contain"
+          />
           <Text style={styles.title}>Welcome to CityPilot</Text>
           <Text style={styles.subtitle}>
             Find the smartest, fastest, and cheapest way to navigate Hyderabad.
@@ -670,9 +728,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 28,
   },
-  brandLogo: {
-    width: 200,
-    height: 60,
+  brandPin: {
+    width: 64,
+    height: 64,
     marginBottom: 16,
   },
   title: {

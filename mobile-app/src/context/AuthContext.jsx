@@ -103,6 +103,19 @@ export const AuthProvider = ({ children }) => {
     return { success: false, message: res?.message || 'Google sign-in failed' };
   };
 
+  // Direct login with pre-authenticated token and user data (from deep link)
+  const loginWithToken = async (tokenVal, userObj = {}, isKnown = false) => {
+    setToken(tokenVal);
+    setUser(userObj);
+    if (userObj?.appMode) {
+      setAppMode(userObj.appMode);
+      await AsyncStorage.setItem(STORAGE_KEYS.MODE, userObj.appMode);
+    }
+    await AsyncStorage.setItem(STORAGE_KEYS.TOKEN, tokenVal);
+    await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userObj));
+    return { success: true, user: userObj, isKnownUser: isKnown };
+  };
+
   // Complete Profile (Mandatory for new / incomplete users)
   const completeProfile = async (profileData) => {
     const res = await authAPI.completeProfile(profileData);
@@ -211,6 +224,7 @@ export const AuthProvider = ({ children }) => {
         verifyEmailOtp,
         loginWithEmail: sendEmailOtp,
         loginWithGoogle,
+        loginWithToken,
         completeProfile,
         updateProfileName,
         requestProfileUpdateOtp,

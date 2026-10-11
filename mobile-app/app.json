@@ -15,7 +15,7 @@
     "android": {
       "package": "com.citypilot.mobility",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icons/citypilot_app_icon_quadhd.png",
+        "foregroundImage": "./assets/icons/adaptive_foreground.png",
         "backgroundColor": "#FFFFFF"
       },
       "permissions": [

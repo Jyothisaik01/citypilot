@@ -28,7 +28,15 @@ export default function SplashScreen({ navigation }) {
 
       {/* Brand Center */}
       <View style={styles.logoCenter}>
-        <Image source={Images.logoDark} style={styles.logoImage} resizeMode="contain" />
+        <Image
+          source={require('../../assets/branding/citypilot_pin_icon.png')}
+          style={styles.pinIcon}
+          resizeMode="contain"
+        />
+        <View style={styles.brandRow}>
+          <Text style={styles.brandCity}>City</Text>
+          <Text style={styles.brandPilot}>Pilot</Text>
+        </View>
         <Text style={styles.tagline}>Find the smartest way there</Text>
       </View>
 
@@ -62,16 +70,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
   },
-  logoImage: {
-    width: width * 0.72,
-    height: 80,
+  pinIcon: {
+    width: 96,
+    height: 96,
     marginBottom: 16,
   },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: 8,
+  },
+  brandCity: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.6,
+  },
+  brandPilot: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: '#0A84FF',
+    letterSpacing: -0.6,
+  },
   tagline: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
     color: '#94A3B8',
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
   },
   footer: {
     position: 'absolute',
