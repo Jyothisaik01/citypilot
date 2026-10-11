@@ -2,6 +2,7 @@
   "expo": {
     "name": "CityPilot",
     "slug": "citypilot-mobile",
+    "owner": "jyothisai.karumajji",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -24,7 +25,9 @@
       "permissions": [
         "INTERNET",
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "plugins": [
@@ -36,6 +39,11 @@
           "locationAlwaysAndWhenInUsePermission": "CityPilot uses your location to discover nearby metro stations, live bus transit, and route navigation across Hyderabad."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "2c933337-e414-4bbf-9fdb-d7bb870ced66"
+      }
+    }
   }
 }
